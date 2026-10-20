@@ -1,0 +1,12 @@
+WASI CAR CONTROL — installation en application (PWA)
+
+1. Mettez TOUT le contenu de ce dossier en ligne, tel quel, à la racine d'un site en HTTPS
+   (Netlify Drop, Vercel, GitHub Pages, ou votre hébergeur). Exemple sur Netlify :
+   https://app.netlify.com/drop → glissez-déposez le dossier.
+2. Ouvrez l'adresse du site sur le téléphone :
+   - Android (Chrome) : bouton « Installer » dans l'en-tête de l'app, ou menu ⋮ → « Installer l'application ».
+   - iPhone (Safari) : bouton Partager → « Sur l'écran d'accueil ».
+3. L'application s'ouvre ensuite en plein écran et fonctionne hors ligne.
+
+Mise à jour : remplacez index.html, puis changez "wasicar-v1" en "wasicar-v2" dans sw.js.
+Les données et les photos sont stockées sur chaque appareil (pas de synchronisation).
