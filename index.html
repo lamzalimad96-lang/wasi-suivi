@@ -678,6 +678,13 @@ new MutationObserver(() => {
   const r = document.getElementById("wc-users-root");
   if (r && !r.dataset.ok) { r.dataset.ok = "1"; r.onclick = usersClick; renderUsers(); }
 }).observe(document.documentElement, { childList: true, subtree: true });
-
+  <!-- Favicon classique et secours pour les navigateurs -->
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<!-- Icône pour iOS / Apple -->
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<!-- Manifest pour Android et PWA -->
+<link rel="manifest" href="/site.webmanifest">
 </script>
 </body></html>
