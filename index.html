@@ -312,6 +312,8 @@ const ALL = SECTIONS.map(s => s[0]);
 const KEY = "wasi-car-control:v2", DOM = "@wasicar.app";
 const ARR = ["vehicles", "clients", "reservations", "payments", "log"];
 const ASC = { vehicles: 1, clients: 1 };
+/* documents valides : tout document mal formé (ajouté à la main dans la console) est ignoré au lieu de faire planter l'application */
+const VALID = { vehicles: o => o && o.id && o.plate, clients: o => o && o.id && o.name && o.phone != null, reservations: o => o && o.id && o.vehicleId && o.clientId, payments: o => o && o.id, log: o => o && o.id };
 const last = {}, tmap = {}, remote = {}, ready = {};
 ARR.forEach(c => { last[c] = {}; tmap[c] = {}; remote[c] = []; });
 let cur = null, unsub = [], seeded = false, cnt = null, info = null, lastCnt = "";
@@ -356,7 +358,13 @@ function build() {
       id: Math.max((cnt && cnt.id) || 0, (L.counters && L.counters.id) || 0)
     }
   };
-  ARR.forEach(c => { st[c] = remote[c]; });
+  ARR.forEach(c => { st[c] = remote[c].slice(); });
+  /* réservations dont le client ou le véhicule a été supprimé : on affiche un élément de remplacement (non enregistré) */
+  const cl = new Set(st.clients.map(x => x.id)), vh = new Set(st.vehicles.map(x => x.id));
+  st.reservations.forEach(r => {
+    if (!cl.has(r.clientId)) { cl.add(r.clientId); st.clients.push({ id: r.clientId, name: "Client supprimé", phone: "—", idNumber: "—", city: "—", createdAt: r.createdAt || "", _stub: 1 }); }
+    if (!vh.has(r.vehicleId)) { vh.add(r.vehicleId); st.vehicles.push({ id: r.vehicleId, plate: "—", brand: "Véhicule", model: "supprimé", year: 2000, category: "Citadine", fuel: "Diesel", transmission: "Manuelle", seats: 5, color: "—", dailyRate: 0, deposit: 0, mileage: 0, nextServiceKm: 0, insuranceExpiry: "", inMaintenance: false, damages: [], _stub: 1 }); }
+  });
   st.employees = L.employees || [];
   return st;
 }
@@ -374,7 +382,7 @@ function listen() {
   ARR.forEach(c => unsub.push(onSnapshot(collection(db, c), snap => {
     if (snap.metadata.hasPendingWrites) return;
     if (snap.empty && (snap.metadata.fromCache || !seeded)) return;
-    const rows = snap.docs.map(d => d.data());
+    const all = snap.docs.map(d => d.data()), rows = all.filter(VALID[c]); if (rows.length < all.length) status("⚠️ " + (all.length - rows.length) + " document(s) invalide(s) ignoré(s) dans « " + c + " »", true);
     rows.sort((a, b) => ASC[c] ? (a._t || 0) - (b._t || 0) : (b._t || 0) - (a._t || 0));
     last[c] = {}; tmap[c] = {};
     remote[c] = rows.map(r => { const { _t, ...o } = r; last[c][o.id] = JSON.stringify(o); tmap[c][o.id] = _t || 0; return o; });
@@ -394,7 +402,7 @@ window.wcSync = {
     if (!cur || !seeded || !allReady()) return;
     if (window.wcRO && window.wcRO({ type: "push" })) return;
     ARR.forEach(c => {
-      const list = state[c] || [], now = {};
+      const list = (state[c] || []).filter(o => !o._stub), now = {};
       list.forEach(o => { now[o.id] = JSON.stringify(o); });
       const fresh = list.filter(o => !(o.id in last[c])), base = Date.now();
       list.forEach(o => {
@@ -507,7 +515,7 @@ window.wcLogin = (u, p) => {
     throw /network/.test(c) ? "Pas de connexion internet." : /too-many/.test(c) ? "Trop de tentatives. Réessayez plus tard."
       : /invalid-credential|user-not-found|wrong-password|invalid-email|missing-password/.test(c) ? "Identifiant ou mot de passe incorrect."
       : /operation-not-allowed/.test(c) ? "La connexion par e-mail n’est pas activée dans Firebase (Authentication > Méthode de connexion)."
-      : /api-key|app-not-authorized/.test(c) ? "Clé Firebase invalide. Vérifiez la configuration du site."
+      : /api-key|app-not-authorized|referer/.test(c) ? "Clé Firebase refusée pour ce site (" + (location.hostname || "fichier local") + ", " + c.replace("auth/","") + "). Vérifiez la clé dans Google Cloud."
       : "Connexion impossible (" + (c || "erreur") + ").";
   });
 };
@@ -628,7 +636,7 @@ function injectCss() { if (!document.getElementById("wcu-css")) { const st = doc
 function renderVehicles() {
   const r = document.getElementById("wc-vehicles-root"); if (!r) return;
   injectCss();
-  const L = readLocal() || { vehicles: [] }, rows = (L.vehicles || []).slice();
+  const L = readLocal() || { vehicles: [] }, rows = (L.vehicles || []).filter(v => !v._stub);
   r.innerHTML = `<div class="wcu-h"><h1>Véhicules</h1><button class="wcu-btn" data-v="add">＋ Ajouter un véhicule</button></div>
   <p class="wcu-sub" style="margin:0 0 14px">${rows.length} véhicule(s) dans la flotte.</p>` +
     (rows.map(v => `<div class="wcu-card"><div class="wcu-row"><div class="wcu-grow"><b>${esc(v.brand)} ${esc(v.model)}</b><div class="wcu-sub">${esc(v.plate)} · ${esc(v.year)} · ${esc(v.category)} · ${esc(v.fuel)} · ${esc(v.transmission)} · ${esc(v.seats)} places</div></div><div><span class="wcu-tag ok">${money(v.dailyRate)} / jour</span>${v.inMaintenance ? '<span class="wcu-tag no">Maintenance</span>' : ""}</div></div>
