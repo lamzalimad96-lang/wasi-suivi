@@ -565,7 +565,7 @@ onAuthStateChanged(auth, async u => {
     const p = await watchProfile(u);
     if (p === "denied") { deny("Firestore refuse l’accès : publiez les règles de sécurité (Firestore > Règles) puis reconnectez-vous."); return; }
     if (!p) { deny("Ce compte n’a pas accès à l’application. Contactez l’administrateur."); return; }
-    window.wcUI.hide(p.name || u.email); window.wcPhotos = PH;
+    window.wcUI.hide(p.name || u.email); window.wcPhotos = PH; injectCss();
     try { await ensureSeed(p.role === "admin" || p.write === true); if (seeded) { listen(); migratePhotos(); } }
     catch (e) { status("⚠️ Accès refusé ou base indisponible (" + ((e && e.code) || "erreur") + ")"); }
     if (p.role === "admin") startUsers();
@@ -579,27 +579,30 @@ onAuthStateChanged(auth, async u => {
 });
 
 /* ===== Onglet « Utilisateurs » (réservé aux administrateurs) ===== */
-const CSS = `#wc-users-root{color:#e8eefc;padding:16px;max-width:900px;margin:0 auto}
+const CSS = `:root{--wcp-text:#e8eefc;--wcp-sub:#9fb0d0;--wcp-card:rgba(255,255,255,.05);--wcp-bd:rgba(255,255,255,.12);--wcp-line:rgba(255,255,255,.08);--wcp-inp:rgba(255,255,255,.08);--wcp-inpb:rgba(255,255,255,.18);--wcp-g:rgba(255,255,255,.12);--wcp-modal:#0f1a30;--wcp-th:#0f1a30;--wcp-ret:rgba(255,255,255,.22)}
+[data-theme="light"]{--wcp-text:#0f172a;--wcp-sub:#475569;--wcp-card:#ffffff;--wcp-bd:rgba(15,23,42,.14);--wcp-line:rgba(15,23,42,.1);--wcp-inp:#ffffff;--wcp-inpb:rgba(15,23,42,.28);--wcp-g:rgba(15,23,42,.08);--wcp-modal:#ffffff;--wcp-th:#f1f5f9;--wcp-ret:rgba(15,23,42,.2)}
+#wc-users-root{color:var(--wcp-text);padding:16px;max-width:900px;margin:0 auto}
 .wcu-h{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}.wcu-h h1{font-size:22px;font-weight:700;margin:0;flex:1}
-.wcu-btn{background:var(--wc-accent,#8d54ff);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer}.wcu-btn.g{background:rgba(255,255,255,.12)}.wcu-btn.r{background:rgba(239,68,68,.85)}
-.wcu-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;margin-bottom:10px}
-.wcu-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.wcu-grow{flex:1;min-width:170px}.wcu-sub{font-size:13px;color:#9fb0d0}
-.wcu-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.12);margin:2px 4px 0 0}.wcu-tag.ok{background:rgba(34,197,94,.28)}.wcu-tag.no{background:rgba(239,68,68,.35)}.wcu-tag.ad{background:rgba(249,115,22,.35)}
+.wcu-btn{background:var(--wc-accent,#8d54ff);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer}.wcu-btn.g{background:var(--wcp-g);color:var(--wcp-text)}.wcu-btn.r{background:rgba(239,68,68,.85)}
+.wcu-card{background:var(--wcp-card);border:1px solid var(--wcp-bd);border-radius:14px;padding:14px;margin-bottom:10px}
+.wcu-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.wcu-grow{flex:1;min-width:170px}.wcu-sub{font-size:13px;color:var(--wcp-sub)}
+.wcu-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--wcp-g);margin:2px 4px 0 0}.wcu-tag.ok{background:rgba(34,197,94,.28)}.wcu-tag.no{background:rgba(239,68,68,.35)}.wcu-tag.ad{background:rgba(249,115,22,.35)}
 .wcu-m{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2147483200;display:flex;align-items:center;justify-content:center;padding:14px}
-.wcu-box{background:#0f1a30;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:18px;width:100%;max-width:440px;max-height:92vh;overflow:auto;color:#e8eefc}
-.wcu-box label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:#c9d6f0}.wcu-box input[type=text],.wcu-box input[type=email],.wcu-box select{width:100%;box-sizing:border-box;padding:10px 12px;font-size:15px;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:10px}
+.wcu-box{background:var(--wcp-modal);border:1px solid var(--wcp-bd);border-radius:16px;padding:18px;width:100%;max-width:440px;max-height:92vh;overflow:auto;color:var(--wcp-text)}
+.wcu-box label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:var(--wcp-sub)}.wcu-box input[type=text],.wcu-box input[type=email],.wcu-box input[type=number],.wcu-box input[type=date],.wcu-box input[type=password],.wcu-box select{width:100%;box-sizing:border-box;padding:10px 12px;font-size:15px;color:var(--wcp-text);background:var(--wcp-inp);border:1px solid var(--wcp-inpb);border-radius:10px}
 .wcu-chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0}.wcu-chk input{width:18px;height:18px}.wcu-err{color:#fca5a5;font-size:13px;min-height:18px;margin-top:8px}
-[id^="wc-"][id$="-root"]{padding:16px;max-width:1000px;margin:0 auto;color:#e8eefc}#wc-alerts-root{padding:0;max-width:none;margin:0}
+[id^="wc-"][id$="-root"]{padding:16px;max-width:1000px;margin:0 auto;color:var(--wcp-text)}#wc-alerts-root{padding:0;max-width:none;margin:0}#wc-alerts-root:not(:empty){padding:24px 16px 0}@media(min-width:1024px){#wc-alerts-root:not(:empty){padding:24px 40px 0}}
 a.wcu-btn{text-decoration:none;display:inline-block}.wcu-btn.wa{background:#25d366;color:#052e16}
-.wcu-f input,.wcu-f select,.wcu-f textarea{width:100%;box-sizing:border-box;padding:10px 12px;font-size:15px;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:10px;font-family:inherit}
-.wcu-f label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:#c9d6f0}.wcu-f input[type=checkbox]{width:18px;height:18px;padding:0}.wcu-f input[type=color]{cursor:pointer}
-.wcu-scroll{overflow-x:auto}.wcu-plan{border-collapse:collapse;font-size:11px;min-width:100%}.wcu-plan th,.wcu-plan td{border:1px solid rgba(255,255,255,.08);padding:0;text-align:center;min-width:22px;height:30px}
-.wcu-plan th.vn{position:sticky;left:0;background:#0f1a30;min-width:130px;text-align:left;padding:4px 8px;font-size:12px;z-index:1}.wcu-plan th.vn small{display:block;color:#9fb0d0;font-weight:400}
-.wcu-plan th.tdy{background:var(--wc-accent,#8d54ff);color:#fff}.wcu-plan th.we{color:#9fb0d0}
-.wcu-plan td.cc{background:#3b82f6}.wcu-plan td.ce{background:#22c55e}.wcu-plan td.ct{background:#64748b}.wcu-plan td.cx{background:#ef4444}.wcu-plan td.cr{background:rgba(255,255,255,.18)}.wcu-plan td[data-pl]{cursor:pointer}
-.lg{display:inline-block;width:12px;height:12px;border-radius:3px;margin:0 4px 0 12px;vertical-align:middle}.lg.cc{background:#3b82f6}.lg.ce{background:#22c55e}.lg.ct{background:#64748b}.lg.cx{background:#ef4444}.lg.cr{background:rgba(255,255,255,.3)}
-.wcu-tbl{width:100%;border-collapse:collapse;font-size:13px}.wcu-tbl th,.wcu-tbl td{text-align:left;padding:7px 8px;border-top:1px solid rgba(255,255,255,.08)}.wcu-tbl th{color:#9fb0d0;font-weight:600}
-aside nav{overflow-y:auto}`;
+.wcu-f input,.wcu-f select,.wcu-f textarea{width:100%;box-sizing:border-box;padding:10px 12px;font-size:15px;color:var(--wcp-text);background:var(--wcp-inp);border:1px solid var(--wcp-inpb);border-radius:10px;font-family:inherit}
+.wcu-f label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:var(--wcp-sub)}.wcu-f input[type=checkbox]{width:18px;height:18px;padding:0}.wcu-f input[type=color]{cursor:pointer}
+.wcu-scroll{overflow-x:auto}.wcu-plan{border-collapse:collapse;font-size:11px;min-width:100%}.wcu-plan th,.wcu-plan td{border:1px solid var(--wcp-line);padding:0;text-align:center;min-width:22px;height:30px}
+.wcu-plan th.vn{position:sticky;left:0;background:var(--wcp-th);min-width:130px;text-align:left;padding:4px 8px;font-size:12px;z-index:1}.wcu-plan th.vn small{display:block;color:var(--wcp-sub);font-weight:400}
+.wcu-plan th.tdy{background:var(--wc-accent,#8d54ff);color:#fff}.wcu-plan th.we{color:var(--wcp-sub)}
+.wcu-plan td.cc{background:#3b82f6}.wcu-plan td.ce{background:#22c55e}.wcu-plan td.ct{background:#64748b}.wcu-plan td.cx{background:#ef4444}.wcu-plan td.cr{background:var(--wcp-ret)}.wcu-plan td[data-pl]{cursor:pointer}
+.lg{display:inline-block;width:12px;height:12px;border-radius:3px;margin:0 4px 0 12px;vertical-align:middle}.lg.cc{background:#3b82f6}.lg.ce{background:#22c55e}.lg.ct{background:#64748b}.lg.cx{background:#ef4444}.lg.cr{background:var(--wcp-ret)}
+.wcu-tbl{width:100%;border-collapse:collapse;font-size:13px}.wcu-tbl th,.wcu-tbl td{text-align:left;padding:7px 8px;border-top:1px solid var(--wcp-line)}.wcu-tbl th{color:var(--wcp-sub);font-weight:600}
+aside nav>*{padding-top:.4rem!important;padding-bottom:.4rem!important}
+aside nav[class]{min-height:0;overflow-y:auto;margin-top:1.1rem}aside nav>button[class]{padding-top:.4rem;padding-bottom:.4rem}aside nav::-webkit-scrollbar{width:4px}`;
 function startUsers() {
   if (!document.getElementById("wcu-css")) { const s = document.createElement("style"); s.id = "wcu-css"; s.textContent = CSS; document.head.appendChild(s); }
   if (unsubUsers) unsubUsers();
@@ -730,7 +733,7 @@ async function vehiclesClick(e) {
     if (res.ok) (L.reservations || []).filter(r => r.vehicleId === v.id).forEach(r => PH.purge(r.id, null).catch(() => {})); if (!res.ok) status("⚠️ " + res.error, true); renderVehicles();
   }
 }
-window.addEventListener("wc-remote", renderVehicles);
+window.addEventListener("wc-remote", () => setTimeout(renderVehicles, 40));
 
 
 /* ======================================================================
@@ -822,7 +825,7 @@ function renderClients() {
       <div class="wcu-f"><label>Notes sur le client</label><textarea id="cn-${esc(c.id)}" rows="3">${esc(c.notes || "")}</textarea>
       <div class="wcu-chk"><input type="checkbox" id="cb-${esc(c.id)}" ${c.blacklisted ? "checked" : ""}> Client à risque (liste noire : réservation impossible)</div></div>
       <div class="wcu-row" style="margin-top:8px"><button class="wcu-btn" data-c="save" data-id="${esc(c.id)}">Enregistrer</button></div>
-      <div style="margin-top:12px"><b style="font-size:13px">Historique</b>${res.map(x => `<div class="wcu-sub" style="padding:5px 0;border-top:1px solid rgba(255,255,255,.08)">${esc(x.ref)} · ${fmtD(x.startDate)} → ${fmtD(x.endDate)} · ${esc(vehLabel(L.vehicles.find(v => v.id === x.vehicleId)))} · ${STATUS[x.status] || x.status} · ${fmtMAD(x.amount)}</div>`).join("") || '<div class="wcu-sub">Aucune location.</div>'}</div>` : ""}</div>`;
+      <div style="margin-top:12px"><b style="font-size:13px">Historique</b>${res.map(x => `<div class="wcu-sub" style="padding:5px 0;border-top:1px solid var(--wcp-line)">${esc(x.ref)} · ${fmtD(x.startDate)} → ${fmtD(x.endDate)} · ${esc(vehLabel(L.vehicles.find(v => v.id === x.vehicleId)))} · ${STATUS[x.status] || x.status} · ${fmtMAD(x.amount)}</div>`).join("") || '<div class="wcu-sub">Aucune location.</div>'}</div>` : ""}</div>`;
     }).join("") || '<div class="wcu-card wcu-sub">Aucun client pour le moment.</div>');
 }
 function clientsEvents(r) {
@@ -888,9 +891,7 @@ function computeAlerts(L) {
     if (r.status === "terminee") { const p = payOf(L, r.id); if (p && remainOf(p) > 0) A.push(["o", `Paiement en attente (${fmtMAD(remainOf(p))}) : ${r.ref} · ${nameOfClient(L, r.clientId)}`]); }
   });
   (L.vehicles || []).filter(v => !v._stub).forEach(v => {
-    [["insuranceExpiry", "Assurance"], ["inspectionExpiry", "Visite technique"]].forEach(([k, lb]) => { if (v[k]) { const d = daysBetween(t, v[k]); if (d < 0) A.push(["r", `${lb} expirée depuis ${-d} j : ${vehLabel(v)}`]); else if (d <= 30) A.push(["o", `${lb} : échéance dans ${d} j (${fmtD(v[k])}) : ${vehLabel(v)}`]); } });
-    if (v.nextServiceKm && v.mileage >= v.nextServiceKm - 500) A.push([v.mileage >= v.nextServiceKm ? "r" : "o", `Révision à prévoir (${Number(v.mileage).toLocaleString("fr-FR")} / ${Number(v.nextServiceKm).toLocaleString("fr-FR")} km) : ${vehLabel(v)}`]);
-    if (v.inMaintenance) A.push(["b", `En maintenance : ${vehLabel(v)}`]);
+    [["inspectionExpiry", "Visite technique"]].forEach(([k, lb]) => { if (v[k]) { const d = daysBetween(t, v[k]); if (d < 0) A.push(["r", `${lb} expirée depuis ${-d} j : ${vehLabel(v)}`]); else if (d <= 30) A.push(["o", `${lb} : échéance dans ${d} j (${fmtD(v[k])}) : ${vehLabel(v)}`]); } });
   });
   conflictsOf(L).forEach(c => A.push(["r", `Double réservation : ${vehLabel(c[0])} (${c[1].ref} / ${c[2].ref})`]));
   const o = { r: 0, o: 1, b: 2 }; return A.sort((a, b) => o[a[0]] - o[b[0]]);
@@ -898,7 +899,9 @@ function computeAlerts(L) {
 function renderAlerts() {
   const r = document.getElementById("wc-alerts-root"); if (!r) return; injectCss();
   const A = computeAlerts(S0()), col = { r: "#ef4444", o: "#f59e0b", b: "#38bdf8" };
-  r.innerHTML = `<div class="wcu-card" style="margin:16px"><b>${A.length ? "⚠️ Alertes (" + A.length + ")" : "✅ Aucune alerte"}</b>${A.slice(0, 12).map(a => `<div class="wcu-sub" style="padding:5px 0 5px 10px;border-left:3px solid ${col[a[0]]};margin-top:6px">${esc(a[1])}</div>`).join("")}${A.length > 12 ? `<div class="wcu-sub" style="margin-top:6px">… et ${A.length - 12} autre(s)</div>` : ""}</div>`;
+  if (!A.length) { r.innerHTML = ""; return; }
+  if (!A.length) { r.innerHTML = ""; return; }
+  r.innerHTML = `<div class="wcu-card" style="margin:0"><b>⚠️ À surveiller (${A.length})</b>${A.slice(0, 12).map(a => `<div class="wcu-sub" style="padding:5px 0 5px 10px;border-left:3px solid ${col[a[0]]};margin-top:6px">${esc(a[1])}</div>`).join("")}${A.length > 12 ? `<div class="wcu-sub" style="margin-top:6px">… et ${A.length - 12} autre(s)</div>` : ""}</div>`;
 }
 
 /* ===================== DÉPENSES ===================== */
@@ -919,7 +922,7 @@ function renderExpenses() {
   <div class="wcu-card wcu-f"><b>Ajouter une dépense</b><label>Véhicule</label><select id="ea-v">${vs.map(v => `<option value="${esc(v.id)}">${esc(vehLabel(v))}</option>`).join("")}</select>
   <div class="wcu-row"><div class="wcu-grow">${field("ea-d", "Date", todayISO(), "date")}</div><div class="wcu-grow"><label>Type</label><select id="ea-t">${EXP_TYPES.map(t => `<option>${t}</option>`).join("")}</select></div></div>
   ${field("ea-a", "Montant (MAD)", "", "number", 'inputmode="decimal" step="any"')}${field("ea-n", "Note (facultatif)", "")}<div class="wcu-err" id="ea-err"></div><button class="wcu-btn" data-e="add" style="width:100%;margin-top:8px">Ajouter la dépense</button></div>
-  <div class="wcu-card"><b>Dépenses (${exps.length})</b>${exps.map(e => `<div class="wcu-row" style="padding:7px 0;border-top:1px solid rgba(255,255,255,.08)"><div class="wcu-grow"><b>${esc(e.type)}</b> · ${fmtMAD(e.amount)}<div class="wcu-sub">${fmtD(e.date)} · ${esc(vehLabel(e.v))}${e.note ? " · " + esc(e.note) : ""}</div></div><button class="wcu-btn r" data-e="del" data-v="${esc(e.v.id)}" data-id="${esc(e.id)}">Supprimer</button></div>`).join("") || '<div class="wcu-sub">Aucune dépense sur cette période.</div>'}</div>`;
+  <div class="wcu-card"><b>Dépenses (${exps.length})</b>${exps.map(e => `<div class="wcu-row" style="padding:7px 0;border-top:1px solid var(--wcp-line)"><div class="wcu-grow"><b>${esc(e.type)}</b> · ${fmtMAD(e.amount)}<div class="wcu-sub">${fmtD(e.date)} · ${esc(vehLabel(e.v))}${e.note ? " · " + esc(e.note) : ""}</div></div><button class="wcu-btn r" data-e="del" data-v="${esc(e.v.id)}" data-id="${esc(e.id)}">Supprimer</button></div>`).join("") || '<div class="wcu-sub">Aucune dépense sur cette période.</div>'}</div>`;
 }
 function expensesEvents(r) {
   r.addEventListener("change", e => { if (e.target.id === "ex-m") expF.month = e.target.value; else if (e.target.id === "ex-v") expF.veh = e.target.value; else return; renderExpenses(); });
@@ -1061,7 +1064,7 @@ window.wcPrint = (kind, rid) => {
 
 /* ----- affichage global ----- */
 function renderAll() { renderClients(); renderPlanning(); renderAlerts(); renderExpenses(); renderReports(); renderSettings(); }
-window.addEventListener("wc-remote", renderAll);
+window.addEventListener("wc-remote", () => setTimeout(renderAll, 40));
 const MOUNT = { "wc-clients-root": [renderClients, clientsEvents], "wc-planning-root": [renderPlanning, planningEvents], "wc-expenses-root": [renderExpenses, expensesEvents], "wc-reports-root": [renderReports, reportsEvents], "wc-settings-root": [renderSettings, settingsEvents] };
 const mountExtras = () => {
   Object.keys(MOUNT).forEach(id => { const r = document.getElementById(id); if (r && !r.dataset.ok) { r.dataset.ok = "1"; MOUNT[id][1](r); MOUNT[id][0](); } });
